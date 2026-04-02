@@ -1,0 +1,110 @@
+# FinTrack Bot
+
+## Descrição
+
+O FinTrack é um bot para Telegram que permite rastrear despesas pessoais de forma simples e eficiente. Ele suporta registros de gastos únicos e parcelados, além de fornecer resumos mensais e um painel web para visualização dos dados. O bot é projetado para ser usado por usuários autorizados, garantindo privacidade.
+
+## Como Funciona
+
+O sistema é composto por:
+- **Bot do Telegram**: Recebe mensagens com despesas e comandos para gerenciar os dados.
+- **Servidor Flask**: Armazena os dados em um arquivo JSON local e fornece uma API REST para o bot e a interface web.
+- **Interface Web**: Um painel HTML simples para visualizar gráficos e resumos das despesas.
+
+Os dados são armazenados localmente no arquivo `fintrack_data.json`. O bot se comunica com o servidor via HTTP para adicionar, editar e excluir despesas.
+
+## Requisitos
+
+- Python 3.7 ou superior
+- Conta no Telegram com um bot criado (via BotFather)
+- Dependências listadas em `requirements.txt`:
+  - flask
+  - flask-cors
+  - python-telegram-bot
+  - requests
+
+## Criacao Bot via BotFather e Id do telegram
+1. **Dentro do Telegram pesquise por BotFather e digite**
+   ```
+   /start
+   /newbot
+   ```
+2. **Siga as intrucoes dele para colocar nome e user ao final deve receeber algo como**
+   ```Use this token to access the HTTP API:899999999:xxxxxxxxxxxxxxxxxxxxxxxxxxxx```
+3. **Ative seu bot enviando /start na conversa com ele**
+
+4. **Procure @userinfobot no telegram e envie /start para ele tambem, voce precisara da linha id:99999999**
+
+## Instalação
+
+1. **Clone ou baixe o repositório**:
+   ```
+   git clone https://github.com/danielgut763/FinWhatsBot.git
+   cd FinWhatsBot
+   ```
+
+2. **Instale as dependências**:
+   ```
+   pip install -r requirements.txt
+   ```
+
+3. **Configure o bot**:
+   - Defina as variáveis de ambiente:
+     - `BOT_TOKEN`: O token do seu bot do Telegram (obtido via BotFather).
+     - `ALLOWED_USERS`: IDs dos usuários autorizados separados por vírgula (ex: "123456789,987654321").
+   - Exemplo no Linux/Mac: `export BOT_TOKEN="seu_token_aqui" && export ALLOWED_USERS="seu_id_aqui"`
+   - No Windows: `set BOT_TOKEN=seu_token_aqui && set ALLOWED_USERS=seu_id_aqui`
+
+4. **Execute o programa**:
+   - Para Windows: Execute `instalar.bat` para instalar como tarefa agendada e iniciar automaticamente.
+   - Ou manualmente: Execute `python server.py` em um terminal e `python fintrack_bot.py` em outro.
+
+## Como Usar (Passo a Passo)
+
+1. **Inicie o bot no Telegram**:
+   - Encontre seu bot no Telegram (pelo username definido no BotFather).
+   - Envie `/start` para ativar o bot. Ele responderá com instruções básicas.
+
+2. **Registre despesas**:
+   - Para gastos únicos: Envie uma mensagem como `150 comida` ou `89.90 transporte uber`.
+   - Para gastos parcelados: Envie `roupa 4x 100` ou `viagem 3x 250 ferias`.
+   - O bot confirmará o registro e mostrará totais atualizados.
+
+3. **Visualize resumos**:
+   - `/resumo`: Mostra o total de gastos por categoria no mês atual, saldo restante, etc.
+   - `/ultimos`: Lista as últimas 5 entradas do mês.
+   - `/parcelas`: Mostra parcelas futuras agendadas.
+
+4. **Edite ou delete entradas**:
+   - Use `/ultimos` para ver os IDs das entradas.
+   - `/editar ID valor categoria`: Edita uma entrada existente.
+   - `/deletar ID`: Remove uma entrada.
+
+5. **Acesse a interface web**:
+   - Abra `fintrack.html` em um navegador (ou sirva via servidor web).
+   - O painel mostra gráficos, métricas e permite ajustar o saldo.
+
+## Comandos Disponíveis
+
+- `/start`: Inicia o bot e mostra ajuda.
+- `/resumo`: Resumo mensal de gastos.
+- `/ultimos`: Últimas 5 entradas.
+- `/parcelas`: Parcelas futuras.
+- `/editar ID valor categoria`: Edita uma entrada.
+- `/deletar ID`: Deleta uma entrada.
+
+## Parar o Programa
+
+- Para Windows: Execute `parar_fintrack.bat` para matar os processos Python.
+- Manualmente: Encerre os terminais onde `server.py` e `fintrack_bot.py` estão rodando (Ctrl+C).
+
+## Notas
+
+- O bot só responde a usuários na lista `ALLOWED_USERS`.
+- Dados são salvos localmente; faça backup de `fintrack_data.json`.
+- Para produção, considere usar um banco de dados em vez de JSON.
+- O servidor roda na porta 5000; certifique-se de que ela esteja livre.
+
+## Suporte
+
+Para dúvidas ou problemas, verifique os logs no terminal ou edite os arquivos conforme necessário.
