@@ -2,17 +2,17 @@
   "balance": 0,
   "categories": [
     {
-      "name": "food",
-      "color": "#1D9E75"
+      "name": "comida",
+      "color": "#1d9e75"
+    },
+    {
+      "name": "uber",
+      "color": "#8a9390"
+    },
+    {
+      "name": "roupa",
+      "color": "#7F77DD"
     }
   ],
-  "expenses": [
-    {
-      "amount": 100.0,
-      "cat": "food",
-      "desc": "",
-      "date": "01/04/2026",
-      "monthKey": "2026-4"
-    }
-  ]
+  "expenses": []
 }
