@@ -93,6 +93,9 @@ Os dados são armazenados localmente no arquivo `fintrack_data.json`. O bot se c
 - `/editar ID valor categoria`: Edita uma entrada.
 - `/deletar ID`: Deleta uma entrada.
 
+## Rodar o programa e configurar para rodar em segundo plano qando pc liga
+- Rodar o arquivo instalar.bat como administrador 
+
 ## Parar o Programa
 
 - Para Windows: Execute `parar_fintrack.bat` para matar os processos Python.
