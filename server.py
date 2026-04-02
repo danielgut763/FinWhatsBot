@@ -5,8 +5,7 @@ import json, os
 app       = Flask(__name__)
 CORS(app)
 DATA_FILE = "fintrack_data.json"
-
-PALETTE = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#D4537E","#639922","#BA7517","#E24B4A"]
+PALETTE   = ["#1D9E75","#378ADD","#D85A30","#7F77DD","#D4537E","#639922","#BA7517","#E24B4A"]
 
 
 def load():
@@ -18,8 +17,17 @@ def load():
 
 def save(d):
     with open(DATA_FILE, "w") as f:
-        json.dump(d, f, indent=2)
+        json.dump(d, f, indent=2, ensure_ascii=False)
 
+
+def ensure_category(d, name):
+    existing = [c["name"] for c in d.get("categories", [])]
+    if name not in existing:
+        color = PALETTE[len(d["categories"]) % len(PALETTE)]
+        d["categories"].append({"name": name, "color": color})
+
+
+# ── rotas ────────────────────────────────────────────────────────────────────
 
 @app.route("/data")
 def get_data():
@@ -28,16 +36,33 @@ def get_data():
 
 @app.route("/expense", methods=["POST"])
 def add_expense():
-    d    = load()
-    body = request.json
+    d = load()
+    ensure_category(d, request.json["cat"])
+    d["expenses"].append(request.json)
+    save(d)
+    return jsonify({"ok": True})
 
-    # Auto-create category if new
-    existing = [c["name"] for c in d.get("categories", [])]
-    if body["cat"] not in existing:
-        color = PALETTE[len(d["categories"]) % len(PALETTE)]
-        d["categories"].append({"name": body["cat"], "color": color})
 
-    d["expenses"].append(body)
+@app.route("/expense/edit", methods=["POST"])
+def edit_expense():
+    d   = load()
+    idx = request.json.get("index")
+    if idx is None or idx < 0 or idx >= len(d["expenses"]):
+        return jsonify({"ok": False, "error": "indice invalido"})
+    d["expenses"][idx]["amount"] = request.json["amount"]
+    d["expenses"][idx]["cat"]    = request.json["cat"]
+    ensure_category(d, request.json["cat"])
+    save(d)
+    return jsonify({"ok": True})
+
+
+@app.route("/expense/delete", methods=["POST"])
+def delete_expense():
+    d   = load()
+    idx = request.json.get("index")
+    if idx is None or idx < 0 or idx >= len(d["expenses"]):
+        return jsonify({"ok": False, "error": "indice invalido"})
+    d["expenses"].pop(idx)
     save(d)
     return jsonify({"ok": True})
 
@@ -70,4 +95,4 @@ def delete_category(name):
 
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(host="0.0.0.0", port=5000)
