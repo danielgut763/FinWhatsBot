@@ -27,8 +27,6 @@ def ensure_category(d, name):
         d["categories"].append({"name": name, "color": color})
 
 
-# ── rotas ────────────────────────────────────────────────────────────────────
-
 @app.route("/data")
 def get_data():
     return jsonify(load())
@@ -96,8 +94,5 @@ def delete_category(name):
     return jsonify({"ok": True})
 
 
-# ── inicializacao ─────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=5000)
