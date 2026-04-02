@@ -48,7 +48,7 @@ def edit_expense():
     d   = load()
     idx = request.json.get("index")
     if idx is None or idx < 0 or idx >= len(d["expenses"]):
-        return jsonify({"ok": False, "error": "indice invalido"})
+        return jsonify({"ok": False, "error": "indice invalido"}), 400
     d["expenses"][idx]["amount"] = request.json["amount"]
     d["expenses"][idx]["cat"]    = request.json["cat"]
     ensure_category(d, request.json["cat"])
@@ -61,7 +61,7 @@ def delete_expense():
     d   = load()
     idx = request.json.get("index")
     if idx is None or idx < 0 or idx >= len(d["expenses"]):
-        return jsonify({"ok": False, "error": "indice invalido"})
+        return jsonify({"ok": False, "error": "indice invalido"}), 400
     d["expenses"].pop(idx)
     save(d)
     return jsonify({"ok": True})
@@ -79,9 +79,11 @@ def set_balance():
 def add_category():
     d    = load()
     body = request.json
-    existing = [c["name"] for c in d.get("categories", [])]
-    if body["name"] not in existing:
-        d["categories"].append({"name": body["name"], "color": body.get("color", "#1D9E75")})
+    name = body.get("name", "").strip().lower()
+    if not name:
+        return jsonify({"ok": False, "error": "nome invalido"}), 400
+    if name not in [c["name"] for c in d["categories"]]:
+        d["categories"].append({"name": name, "color": body.get("color", "#1D9E75")})
         save(d)
     return jsonify({"ok": True})
 
@@ -94,5 +96,8 @@ def delete_category(name):
     return jsonify({"ok": True})
 
 
+# ── inicializacao ─────────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
