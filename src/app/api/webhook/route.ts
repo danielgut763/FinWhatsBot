@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
           const monthKey = format(futureDate, 'yyyy-MM');
           const installmentInfo = `${i + 1}/${installments}`;
           
-          await supabase.from('expenses').insert({
+          const { error } = await supabase.from('expenses').insert({
             amount: installmentAmount,
             category: category,
             description: desc,
@@ -82,11 +82,12 @@ export async function POST(req: NextRequest) {
             month_key: monthKey,
             installment_info: installmentInfo
           });
+          if (error) throw new Error("Erro no Supabase: " + JSON.stringify(error));
         }
         await sendMessage(chatId, `✅ Parcelado registrado!\n${category}: ${installments}x de R$ ${installmentAmount.toFixed(2)}\nTotal: R$ ${amount.toFixed(2)}`);
       } else {
         const monthKey = format(date, 'yyyy-MM');
-        await supabase.from('expenses').insert({
+        const { error } = await supabase.from('expenses').insert({
           amount: amount,
           category: category,
           description: desc,
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
           month_key: monthKey,
           installment_info: null
         });
+        if (error) throw new Error("Erro no Supabase: " + JSON.stringify(error));
         await sendMessage(chatId, `✅ Gasto registrado!\nR$ ${amount.toFixed(2)} em ${category}.`);
       }
     }

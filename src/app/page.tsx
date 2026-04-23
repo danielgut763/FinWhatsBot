@@ -4,6 +4,8 @@ import { Login } from '@/components/Login';
 import { Dashboard } from '@/components/Dashboard';
 import { format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home(props: { searchParams: Promise<{ month?: string }> }) {
   const cookieStore = await cookies();
   const auth = cookieStore.get('auth');
