@@ -58,7 +58,7 @@ export async function processExpenseAudio(base64Audio: string, mimeType: string)
 function extractJSON(text: string) {
   try {
     // Tenta encontrar um array no meio do texto
-    const match = text.match(/\[.*\]/s);
+    const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       return JSON.parse(match[0]);
     }
