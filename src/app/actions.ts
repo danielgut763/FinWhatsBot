@@ -2,6 +2,8 @@
 
 import { cookies } from 'next/headers';
 
+import { supabase } from '@/lib/supabase';
+
 export async function login(password: string) {
   if (password === process.env.DASHBOARD_PASSWORD) {
     (await cookies()).set('auth', 'true', { secure: true, httpOnly: true, path: '/' });
@@ -12,4 +14,9 @@ export async function login(password: string) {
 
 export async function logout() {
   (await cookies()).delete('auth');
+}
+
+export async function updateBalance(newBalance: number) {
+  const { error } = await supabase.from('settings').upsert({ id: 1, balance: newBalance });
+  return { success: !error };
 }

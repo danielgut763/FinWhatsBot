@@ -21,7 +21,10 @@ User: "comprei uma tv de 1200 em 10x"
 
 const model = genAI.getGenerativeModel({
   model: 'gemini-1.5-flash',
-  systemInstruction
+  systemInstruction,
+  generationConfig: {
+    responseMimeType: "application/json",
+  }
 });
 
 export async function processExpenseText(text: string) {
@@ -53,6 +56,16 @@ export async function processExpenseAudio(base64Audio: string, mimeType: string)
 }
 
 function extractJSON(text: string) {
-  const jsonString = text.replace(/```json\n?|\n?```/g, '').trim();
-  return JSON.parse(jsonString);
+  try {
+    // Tenta encontrar um array no meio do texto
+    const match = text.match(/\[.*\]/s);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+    const jsonString = text.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(jsonString);
+  } catch (e) {
+    console.error("Falha no JSON. Recebido:", text);
+    throw e;
+  }
 }

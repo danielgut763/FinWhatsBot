@@ -22,9 +22,13 @@ export default async function Home(props: { searchParams: Promise<{ month?: stri
     .eq('month_key', currentMonthKey)
     .order('date', { ascending: false });
 
-  // Busca o saldo do usuário (como não temos tabela de saldo no MVP, fixamos um valor ou buscamos de um DB.
-  // Vamos fixar um valor inicial de 5000 para demonstração)
-  const balance = 5000;
+  const { data: settings } = await supabase
+    .from('settings')
+    .select('balance')
+    .eq('id', 1)
+    .single();
+
+  const balance = settings?.balance || 0;
 
   return (
     <Dashboard 

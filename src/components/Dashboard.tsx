@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag, Edit2, Check, X } from 'lucide-react';
 import { Expense } from '@/lib/supabase';
-import { logout } from '@/app/actions';
+import { logout, updateBalance } from '@/app/actions';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { format, subMonths, addMonths, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,6 +20,17 @@ const COLORS = ['#1D9E75', '#378ADD', '#D85A30', '#7F77DD', '#D4537E', '#639922'
 export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isEditingBalance, setIsEditingBalance] = useState(false);
+  const [editBalanceValue, setEditBalanceValue] = useState(balance.toString());
+  const [isSavingBalance, setIsSavingBalance] = useState(false);
+
+  const handleSaveBalance = async () => {
+    setIsSavingBalance(true);
+    await updateBalance(Number(editBalanceValue));
+    setIsSavingBalance(false);
+    setIsEditingBalance(false);
+    router.refresh();
+  };
 
   const currentDate = parse(currentMonthKey, 'yyyy-MM', new Date());
   const formattedMonth = format(currentDate, 'MMMM yyyy', { locale: ptBR });
@@ -105,10 +116,34 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
             <div className="flex items-center gap-3 text-zinc-400 mb-2">
               <Wallet className="w-5 h-5" />
               <h2 className="font-medium">Saldo Restante</h2>
+              {!isEditingBalance && (
+                <button onClick={() => setIsEditingBalance(true)} className="ml-auto p-1.5 hover:bg-zinc-800 rounded-md transition-colors text-zinc-500 hover:text-zinc-300" title="Editar saldo base">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <p className={`text-4xl font-bold tracking-tight ${remainingBalance < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-              R$ {remainingBalance.toFixed(2)}
-            </p>
+            {isEditingBalance ? (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-2xl font-bold text-zinc-400">R$</span>
+                <input 
+                  type="number" 
+                  value={editBalanceValue}
+                  onChange={e => setEditBalanceValue(e.target.value)}
+                  className="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-2xl font-bold text-zinc-100 w-32 focus:outline-none focus:border-teal-500"
+                  autoFocus
+                />
+                <button onClick={handleSaveBalance} disabled={isSavingBalance} className="p-1.5 bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 rounded-lg transition-colors">
+                  <Check className="w-5 h-5" />
+                </button>
+                <button onClick={() => setIsEditingBalance(false)} className="p-1.5 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 rounded-lg transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <p className={`text-4xl font-bold tracking-tight ${remainingBalance < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                R$ {remainingBalance.toFixed(2)}
+              </p>
+            )}
           </div>
         </div>
 
