@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag, Edit2, Check, X } from 'lucide-react';
 import { Expense } from '@/lib/supabase';
-import { logout, updateBalance } from '@/app/actions';
+import { logout, updateBalance, updateExpense } from '@/app/actions';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { format, subMonths, addMonths, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,25 +20,61 @@ const COLORS = ['#1D9E75', '#378ADD', '#D85A30', '#7F77DD', '#D4537E', '#639922'
 export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  const [localBalance, setLocalBalance] = useState(balance);
+  const [localExpenses, setLocalExpenses] = useState<Expense[]>(expenses);
+
+  useEffect(() => {
+    setLocalBalance(balance);
+    setLocalExpenses(expenses);
+    setEditBalanceValue(balance.toString());
+  }, [balance, expenses]);
+
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [editBalanceValue, setEditBalanceValue] = useState(balance.toString());
   const [isSavingBalance, setIsSavingBalance] = useState(false);
 
+  // Estados para edição de despesa
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [editExpenseData, setEditExpenseData] = useState({ amount: '', category: '', description: '' });
+  const [isSavingExpense, setIsSavingExpense] = useState(false);
+
   const handleSaveBalance = async () => {
     setIsSavingBalance(true);
-    const res = await updateBalance(Number(editBalanceValue));
+    const newBal = Number(editBalanceValue);
+    const res = await updateBalance(newBal);
     if (!res.success) {
       alert("Erro ao salvar saldo: " + JSON.stringify(res.error));
+    } else {
+      setLocalBalance(newBal);
     }
     setIsSavingBalance(false);
     setIsEditingBalance(false);
   };
 
+  const handleEditExpense = (exp: Expense) => {
+    setEditingExpenseId(exp.id);
+    setEditExpenseData({ amount: exp.amount.toString(), category: exp.category, description: exp.description || '' });
+  };
+
+  const handleSaveExpense = async () => {
+    if (!editingExpenseId) return;
+    setIsSavingExpense(true);
+    const res = await updateExpense(editingExpenseId, Number(editExpenseData.amount), editExpenseData.category, editExpenseData.description);
+    if (!res.success) {
+      alert("Erro ao salvar despesa: " + JSON.stringify(res.error));
+    } else {
+      setLocalExpenses(prev => prev.map(e => e.id === editingExpenseId ? { ...e, amount: Number(editExpenseData.amount), category: editExpenseData.category, description: editExpenseData.description } : e));
+    }
+    setIsSavingExpense(false);
+    setEditingExpenseId(null);
+  };
+
   const currentDate = parse(currentMonthKey, 'yyyy-MM', new Date());
   const formattedMonth = format(currentDate, 'MMMM yyyy', { locale: ptBR });
 
-  const totalExpenses = expenses.reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const remainingBalance = balance - totalExpenses;
+  const totalExpenses = localExpenses.reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const remainingBalance = localBalance - totalExpenses;
 
   const handlePrevMonth = () => {
     const prev = subMonths(currentDate, 1);
@@ -58,7 +94,7 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
 
   // Prepara dados para os gráficos
   const categoryTotals: Record<string, number> = {};
-  expenses.forEach(e => {
+  localExpenses.forEach(e => {
     categoryTotals[e.category] = (categoryTotals[e.category] || 0) + Number(e.amount);
   });
 
@@ -149,7 +185,7 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
           </div>
         </div>
 
-        {expenses.length === 0 ? (
+        {localExpenses.length === 0 ? (
           <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-800 rounded-3xl">
             Nenhuma despesa registrada neste mês.
           </div>
@@ -198,21 +234,64 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
             <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800/50 rounded-3xl p-6">
               <h3 className="font-medium mb-6 text-zinc-300">Histórico</h3>
               <div className="space-y-4">
-                {expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(exp => (
-                  <div key={exp.id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-900/50 hover:bg-zinc-800/50 transition-colors border border-zinc-800/30">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
-                        <Tag className="w-4 h-4 text-zinc-400" />
+                {localExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(exp => (
+                  <div key={exp.id} className="flex flex-col p-4 rounded-2xl bg-zinc-900/50 hover:bg-zinc-800/50 transition-colors border border-zinc-800/30 group">
+                    {editingExpenseId === exp.id ? (
+                      <div className="flex flex-col md:flex-row gap-3 w-full items-start md:items-center">
+                        <div className="flex-1 w-full space-y-2">
+                          <input 
+                            type="text" 
+                            placeholder="Categoria"
+                            value={editExpenseData.category}
+                            onChange={e => setEditExpenseData({...editExpenseData, category: e.target.value})}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
+                          />
+                          <input 
+                            type="text" 
+                            placeholder="Descrição"
+                            value={editExpenseData.description}
+                            onChange={e => setEditExpenseData({...editExpenseData, description: e.target.value})}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-500 focus:outline-none focus:border-teal-500"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                          <span className="font-semibold text-zinc-400">R$</span>
+                          <input 
+                            type="number" 
+                            value={editExpenseData.amount}
+                            onChange={e => setEditExpenseData({...editExpenseData, amount: e.target.value})}
+                            className="w-24 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-sm font-semibold text-zinc-100 focus:outline-none focus:border-teal-500"
+                          />
+                          <button onClick={handleSaveExpense} disabled={isSavingExpense} className="p-1.5 bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 rounded-lg transition-colors">
+                            <Check className="w-5 h-5" />
+                          </button>
+                          <button onClick={() => setEditingExpenseId(null)} className="p-1.5 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 rounded-lg transition-colors">
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-zinc-200 capitalize">
-                          {exp.category} 
-                          {exp.installment_info && <span className="ml-2 text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">Parc: {exp.installment_info}</span>}
-                        </p>
-                        <p className="text-sm text-zinc-500">{exp.description || 'Sem descrição'} • {format(new Date(exp.date), 'dd/MM/yyyy')}</p>
+                    ) : (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
+                            <Tag className="w-4 h-4 text-zinc-400" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-zinc-200 capitalize flex items-center gap-2">
+                              {exp.category} 
+                              {exp.installment_info && <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">Parc: {exp.installment_info}</span>}
+                            </p>
+                            <p className="text-sm text-zinc-500">{exp.description || 'Sem descrição'} • {format(new Date(exp.date), 'dd/MM/yyyy')}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-semibold text-zinc-300">R$ {Number(exp.amount).toFixed(2)}</span>
+                          <button onClick={() => handleEditExpense(exp)} className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-zinc-800 rounded-md transition-all text-zinc-500 hover:text-zinc-300" title="Editar gasto">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <span className="font-semibold text-zinc-300">R$ {Number(exp.amount).toFixed(2)}</span>
+                    )}
                   </div>
                 ))}
               </div>

@@ -26,3 +26,12 @@ export async function updateBalance(newBalance: number) {
   revalidatePath('/');
   return { success: !error, error };
 }
+
+export async function updateExpense(id: string, amount: number, category: string, description: string) {
+  const { error } = await supabase.from('expenses').update({ amount, category, description }).eq('id', id);
+  if (error) {
+    console.error("Supabase Error Update Expense:", error);
+  }
+  revalidatePath('/');
+  return { success: !error, error };
+}
