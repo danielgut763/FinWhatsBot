@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag, Edit2, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag, Edit2, Check, X, Trash2 } from 'lucide-react';
 import { Expense } from '@/lib/supabase';
-import { logout, updateBalance, updateExpense } from '@/app/actions';
+import { logout, updateBalance, updateExpense, deleteExpense } from '@/app/actions';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { format, subMonths, addMonths, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -38,6 +38,7 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [editExpenseData, setEditExpenseData] = useState({ amount: '', category: '', description: '' });
   const [isSavingExpense, setIsSavingExpense] = useState(false);
+  const [isDeletingExpense, setIsDeletingExpense] = useState(false);
 
   const handleSaveBalance = async () => {
     setIsSavingBalance(true);
@@ -68,6 +69,19 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
     }
     setIsSavingExpense(false);
     setEditingExpenseId(null);
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este gasto?")) return;
+    setIsDeletingExpense(true);
+    const res = await deleteExpense(id);
+    if (!res.success) {
+      alert("Erro ao excluir despesa: " + JSON.stringify(res.error));
+    } else {
+      setLocalExpenses(prev => prev.filter(e => e.id !== id));
+      if (editingExpenseId === id) setEditingExpenseId(null);
+    }
+    setIsDeletingExpense(false);
   };
 
   const currentDate = parse(currentMonthKey, 'yyyy-MM', new Date());
@@ -139,19 +153,19 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-3xl p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-emerald-500/20"></div>
-            <div className="flex items-center gap-3 text-zinc-400 mb-2">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-emerald-500/20 pointer-events-none"></div>
+            <div className="flex items-center gap-3 text-zinc-400 mb-2 relative z-10">
               <TrendingUp className="w-5 h-5" />
               <h2 className="font-medium">Despesas do Mês</h2>
             </div>
-            <p className="text-4xl font-bold tracking-tight text-zinc-100">
+            <p className="text-4xl font-bold tracking-tight text-zinc-100 relative z-10">
               R$ {totalExpenses.toFixed(2)}
             </p>
           </div>
 
           <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-3xl p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-teal-500/20"></div>
-            <div className="flex items-center gap-3 text-zinc-400 mb-2">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-teal-500/20 pointer-events-none"></div>
+            <div className="flex items-center gap-3 text-zinc-400 mb-2 relative z-10">
               <Wallet className="w-5 h-5" />
               <h2 className="font-medium">Saldo Restante</h2>
               {!isEditingBalance && (
@@ -264,6 +278,9 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
                           />
                           <button onClick={handleSaveExpense} disabled={isSavingExpense} className="p-1.5 bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 rounded-lg transition-colors">
                             <Check className="w-5 h-5" />
+                          </button>
+                          <button onClick={() => handleDeleteExpense(exp.id)} disabled={isDeletingExpense} className="p-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors" title="Excluir gasto">
+                            <Trash2 className="w-5 h-5" />
                           </button>
                           <button onClick={() => setEditingExpenseId(null)} className="p-1.5 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 rounded-lg transition-colors">
                             <X className="w-5 h-5" />

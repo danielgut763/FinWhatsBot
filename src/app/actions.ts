@@ -35,3 +35,12 @@ export async function updateExpense(id: string, amount: number, category: string
   revalidatePath('/');
   return { success: !error, error };
 }
+
+export async function deleteExpense(id: string) {
+  const { error } = await supabase.from('expenses').delete().eq('id', id);
+  if (error) {
+    console.error("Supabase Error Delete Expense:", error);
+  }
+  revalidatePath('/');
+  return { success: !error, error };
+}
