@@ -26,10 +26,12 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
 
   const handleSaveBalance = async () => {
     setIsSavingBalance(true);
-    await updateBalance(Number(editBalanceValue));
+    const res = await updateBalance(Number(editBalanceValue));
+    if (!res.success) {
+      alert("Erro ao salvar saldo: " + JSON.stringify(res.error));
+    }
     setIsSavingBalance(false);
     setIsEditingBalance(false);
-    router.refresh();
   };
 
   const currentDate = parse(currentMonthKey, 'yyyy-MM', new Date());

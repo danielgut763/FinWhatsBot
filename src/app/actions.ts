@@ -16,7 +16,13 @@ export async function logout() {
   (await cookies()).delete('auth');
 }
 
+import { revalidatePath } from 'next/cache';
+
 export async function updateBalance(newBalance: number) {
   const { error } = await supabase.from('settings').upsert({ id: 1, balance: newBalance });
-  return { success: !error };
+  if (error) {
+    console.error("Supabase Error Update Balance:", error);
+  }
+  revalidatePath('/');
+  return { success: !error, error };
 }
