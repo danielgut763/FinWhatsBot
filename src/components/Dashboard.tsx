@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag, Edit2, Check, X, Trash2 } from 'lucide-react';
-import { Expense } from '@/lib/supabase';
-import { logout, updateBalance, updateExpense, deleteExpense } from '@/app/actions';
+import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag, Edit2, Check, X, Trash2, CreditCard, Settings2 } from 'lucide-react';
+import { Expense, Card } from '@/lib/supabase';
+import { logout, updateBalance, updateExpense, deleteExpense, upsertCard } from '@/app/actions';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { format, subMonths, addMonths, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,16 +13,18 @@ interface DashboardProps {
   currentMonthKey: string;
   expenses: Expense[];
   balance: number;
+  cards: Card[];
 }
 
 const COLORS = ['#1D9E75', '#378ADD', '#D85A30', '#7F77DD', '#D4537E', '#639922', '#BA7517'];
 
-export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps) {
+export function Dashboard({ currentMonthKey, expenses, balance, cards }: DashboardProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const [localBalance, setLocalBalance] = useState(balance);
   const [localExpenses, setLocalExpenses] = useState<Expense[]>(expenses);
+  const [localCards, setLocalCards] = useState<Card[]>(cards);
 
   useEffect(() => {
     setLocalBalance(balance);
@@ -36,9 +38,15 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
 
   // Estados para edição de despesa
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-  const [editExpenseData, setEditExpenseData] = useState({ amount: '', category: '', description: '' });
+  const [editExpenseData, setEditExpenseData] = useState({ amount: '', category: '', description: '', payment_method: '' });
   const [isSavingExpense, setIsSavingExpense] = useState(false);
   const [isDeletingExpense, setIsDeletingExpense] = useState(false);
+
+  // Estados para configuração de cartões
+  const [showCardConfig, setShowCardConfig] = useState(false);
+  const [cardConfigName, setCardConfigName] = useState('');
+  const [cardConfigDue, setCardConfigDue] = useState('');
+  const [isSavingCard, setIsSavingCard] = useState(false);
 
   const handleSaveBalance = async () => {
     setIsSavingBalance(true);
@@ -55,17 +63,17 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
 
   const handleEditExpense = (exp: Expense) => {
     setEditingExpenseId(exp.id);
-    setEditExpenseData({ amount: exp.amount.toString(), category: exp.category, description: exp.description || '' });
+    setEditExpenseData({ amount: exp.amount.toString(), category: exp.category, description: exp.description || '', payment_method: exp.payment_method || '' });
   };
 
   const handleSaveExpense = async () => {
     if (!editingExpenseId) return;
     setIsSavingExpense(true);
-    const res = await updateExpense(editingExpenseId, Number(editExpenseData.amount), editExpenseData.category, editExpenseData.description);
+    const res = await updateExpense(editingExpenseId, Number(editExpenseData.amount), editExpenseData.category, editExpenseData.description, editExpenseData.payment_method);
     if (!res.success) {
       alert("Erro ao salvar despesa: " + JSON.stringify(res.error));
     } else {
-      setLocalExpenses(prev => prev.map(e => e.id === editingExpenseId ? { ...e, amount: Number(editExpenseData.amount), category: editExpenseData.category, description: editExpenseData.description } : e));
+      setLocalExpenses(prev => prev.map(e => e.id === editingExpenseId ? { ...e, amount: Number(editExpenseData.amount), category: editExpenseData.category, description: editExpenseData.description, payment_method: editExpenseData.payment_method } : e));
     }
     setIsSavingExpense(false);
     setEditingExpenseId(null);
@@ -108,13 +116,42 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
 
   // Prepara dados para os gráficos
   const categoryTotals: Record<string, number> = {};
+  const cardTotals: Record<string, number> = {};
+  
   localExpenses.forEach(e => {
     categoryTotals[e.category] = (categoryTotals[e.category] || 0) + Number(e.amount);
+    
+    if (e.payment_method && e.payment_method.toLowerCase() !== 'pix' && e.payment_method.toLowerCase() !== 'dinheiro' && e.payment_method.toLowerCase() !== 'outros') {
+      const pm = e.payment_method.toLowerCase();
+      cardTotals[pm] = (cardTotals[pm] || 0) + Number(e.amount);
+    }
   });
 
   const pieData = Object.entries(categoryTotals)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
+
+  const cardData = Object.entries(cardTotals)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const handleSaveCard = async () => {
+    if (!cardConfigName || !cardConfigDue) return;
+    setIsSavingCard(true);
+    const res = await upsertCard(cardConfigName.toLowerCase(), Number(cardConfigDue));
+    if (!res.success) {
+      alert("Erro ao salvar cartão: " + JSON.stringify(res.error));
+    } else {
+      const newCard = { id: Date.now().toString(), name: cardConfigName.toLowerCase(), due_day: Number(cardConfigDue) };
+      setLocalCards(prev => {
+        const filtered = prev.filter(c => c.name !== newCard.name);
+        return [...filtered, newCard];
+      });
+      setCardConfigName('');
+      setCardConfigDue('');
+    }
+    setIsSavingCard(false);
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-emerald-500/30">
@@ -199,6 +236,45 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
           </div>
         </div>
 
+        {/* Card Configurations Modal/Section */}
+        {showCardConfig && (
+          <div className="bg-zinc-900/80 border border-zinc-800/50 rounded-3xl p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-zinc-300 flex items-center gap-2">
+                <Settings2 className="w-4 h-4" /> Configurar Cartões
+              </h3>
+              <button onClick={() => setShowCardConfig(false)} className="p-1.5 hover:bg-zinc-800 rounded-md text-zinc-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Nome do cartão (ex: latam)" value={cardConfigName} onChange={e => setCardConfigName(e.target.value)} className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-teal-500" />
+                  <input type="number" placeholder="Vencimento (ex: 15)" value={cardConfigDue} onChange={e => setCardConfigDue(e.target.value)} className="w-32 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-teal-500" />
+                  <button onClick={handleSaveCard} disabled={isSavingCard} className="bg-teal-500 text-zinc-950 px-4 py-2 rounded-lg font-medium hover:bg-teal-400 transition-colors">
+                    Salvar
+                  </button>
+                </div>
+              </div>
+              <div className="bg-zinc-950/50 rounded-xl p-4 border border-zinc-800/50">
+                <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Cartões Cadastrados</h4>
+                <div className="space-y-2">
+                  {localCards.length === 0 ? <p className="text-sm text-zinc-600">Nenhum cartão cadastrado.</p> : 
+                    localCards.map(c => (
+                      <div key={c.name} className="flex justify-between items-center text-sm">
+                        <span className="capitalize text-zinc-300">{c.name}</span>
+                        <span className="text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full text-xs">Vence dia {c.due_day}</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {localExpenses.length === 0 ? (
           <div className="text-center py-20 text-zinc-500 border border-dashed border-zinc-800 rounded-3xl">
             Nenhuma despesa registrada neste mês.
@@ -244,8 +320,41 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
               </div>
             </div>
 
+            {/* Cards Overview */}
+            {cardData.length > 0 && (
+              <div className="lg:col-span-1 bg-zinc-900/30 border border-zinc-800/50 rounded-3xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-medium text-zinc-300 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-emerald-500" /> Faturas no Mês
+                  </h3>
+                  <button onClick={() => setShowCardConfig(!showCardConfig)} className="p-1 hover:bg-zinc-800 rounded-md text-zinc-500 hover:text-zinc-300" title="Configurar Cartões">
+                    <Settings2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {cardData.map((item) => {
+                    const cardConfig = localCards.find(c => c.name === item.name);
+                    return (
+                      <div key={item.name} className="flex flex-col gap-1 p-3 bg-zinc-900/50 rounded-xl border border-zinc-800/30">
+                        <div className="flex items-center justify-between">
+                          <span className="capitalize text-zinc-300 font-medium">{item.name.replace('cartao ', '')}</span>
+                          <span className="font-semibold text-zinc-100">R$ {item.value.toFixed(2)}</span>
+                        </div>
+                        {cardConfig && (
+                          <div className="text-xs text-zinc-500">
+                            Vencimento: Dia {cardConfig.due_day}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* List */}
-            <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800/50 rounded-3xl p-6">
+            <div className={`lg:col-span-${cardData.length > 0 ? '1 lg:col-span-1' : '2'} bg-zinc-900/30 border border-zinc-800/50 rounded-3xl p-6`}>
               <h3 className="font-medium mb-6 text-zinc-300">Histórico</h3>
               <div className="space-y-4">
                 {localExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(exp => (
@@ -253,20 +362,27 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
                     {editingExpenseId === exp.id ? (
                       <div className="flex flex-col md:flex-row gap-3 w-full items-start md:items-center">
                         <div className="flex-1 w-full space-y-2">
-                          <input 
-                            type="text" 
-                            placeholder="Categoria"
-                            value={editExpenseData.category}
-                            onChange={e => setEditExpenseData({...editExpenseData, category: e.target.value})}
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
-                          />
-                          <input 
-                            type="text" 
-                            placeholder="Descrição"
-                            value={editExpenseData.description}
-                            onChange={e => setEditExpenseData({...editExpenseData, description: e.target.value})}
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-500 focus:outline-none focus:border-teal-500"
-                          />
+                            <input 
+                              type="text" 
+                              placeholder="Categoria"
+                              value={editExpenseData.category}
+                              onChange={e => setEditExpenseData({...editExpenseData, category: e.target.value})}
+                              className="w-full md:w-1/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
+                            />
+                            <input 
+                              type="text" 
+                              placeholder="Método (Pix, Latam...)"
+                              value={editExpenseData.payment_method}
+                              onChange={e => setEditExpenseData({...editExpenseData, payment_method: e.target.value})}
+                              className="w-full md:w-1/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
+                            />
+                            <input 
+                              type="text" 
+                              placeholder="Descrição"
+                              value={editExpenseData.description}
+                              onChange={e => setEditExpenseData({...editExpenseData, description: e.target.value})}
+                              className="w-full md:w-1/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-500 focus:outline-none focus:border-teal-500"
+                            />
                         </div>
                         <div className="flex items-center gap-2 w-full md:w-auto">
                           <span className="font-semibold text-zinc-400">R$</span>
@@ -296,6 +412,9 @@ export function Dashboard({ currentMonthKey, expenses, balance }: DashboardProps
                           <div>
                             <p className="font-medium text-zinc-200 capitalize flex items-center gap-2">
                               {exp.category} 
+                              {exp.payment_method && exp.payment_method !== 'outros' && (
+                                <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">{exp.payment_method}</span>
+                              )}
                               {exp.installment_info && <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">Parc: {exp.installment_info}</span>}
                             </p>
                             <p className="text-sm text-zinc-500">{exp.description || 'Sem descrição'} • {format(new Date(exp.date), 'dd/MM/yyyy')}</p>

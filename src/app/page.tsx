@@ -32,11 +32,16 @@ export default async function Home(props: { searchParams: Promise<{ month?: stri
 
   const balance = settings?.balance || 0;
 
+  const { data: cards } = await supabase
+    .from('cards')
+    .select('*');
+
   return (
     <Dashboard 
       currentMonthKey={currentMonthKey} 
       expenses={(expenses as Expense[]) || []} 
       balance={balance} 
+      cards={cards || []}
     />
   );
 }

@@ -27,8 +27,8 @@ export async function updateBalance(newBalance: number) {
   return { success: !error, error };
 }
 
-export async function updateExpense(id: string, amount: number, category: string, description: string) {
-  const { error } = await supabase.from('expenses').update({ amount, category, description }).eq('id', id);
+export async function updateExpense(id: string, amount: number, category: string, description: string, payment_method: string) {
+  const { error } = await supabase.from('expenses').update({ amount, category, description, payment_method }).eq('id', id);
   if (error) {
     console.error("Supabase Error Update Expense:", error);
   }
@@ -40,6 +40,15 @@ export async function deleteExpense(id: string) {
   const { error } = await supabase.from('expenses').delete().eq('id', id);
   if (error) {
     console.error("Supabase Error Delete Expense:", error);
+  }
+  revalidatePath('/');
+  return { success: !error, error };
+}
+
+export async function upsertCard(name: string, dueDay: number) {
+  const { error } = await supabase.from('cards').upsert({ name, due_day: dueDay }, { onConflict: 'name' });
+  if (error) {
+    console.error("Supabase Error Upsert Card:", error);
   }
   revalidatePath('/');
   return { success: !error, error };

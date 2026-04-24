@@ -13,5 +13,12 @@ export type Expense = {
   date: string;
   month_key: string;
   installment_info: string | null;
+  payment_method: string | null;
   created_at: string;
+};
+
+export type Card = {
+  id: string;
+  name: string;
+  due_day: number;
 };

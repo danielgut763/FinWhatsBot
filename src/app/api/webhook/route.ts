@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       const category = exp.category;
       const desc = exp.description;
       const installments = exp.installments || 1;
+      const payment_method = exp.payment_method || 'outros';
 
       if (installments > 1) {
         const installmentAmount = amount / installments;
@@ -80,7 +81,8 @@ export async function POST(req: NextRequest) {
             description: desc,
             date: futureDate.toISOString().split('T')[0],
             month_key: monthKey,
-            installment_info: installmentInfo
+            installment_info: installmentInfo,
+            payment_method: payment_method
           });
           if (error) throw new Error("Erro no Supabase: " + JSON.stringify(error));
         }
@@ -93,10 +95,11 @@ export async function POST(req: NextRequest) {
           description: desc,
           date: date.toISOString().split('T')[0],
           month_key: monthKey,
-          installment_info: null
+          installment_info: null,
+          payment_method: payment_method
         });
         if (error) throw new Error("Erro no Supabase: " + JSON.stringify(error));
-        await sendMessage(chatId, `✅ Gasto registrado!\nR$ ${amount.toFixed(2)} em ${category}.`);
+        await sendMessage(chatId, `✅ Gasto registrado!\nR$ ${amount.toFixed(2)} em ${category} (${payment_method}).`);
       }
     }
 

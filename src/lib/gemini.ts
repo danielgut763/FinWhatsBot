@@ -10,14 +10,15 @@ A estrutura do objeto JSON deve ser:
   "amount": número (valor total, usando ponto para decimal),
   "category": string (em minúsculas, ex: comida, transporte, lazer, casa, saude, educacao. Se não souber, use "outros"),
   "description": string (breve descrição se houver),
-  "installments": número (quantidade de parcelas, default 1)
+  "installments": número (quantidade de parcelas, default 1),
+  "payment_method": string (ex: "pix", "dinheiro", "cartao nubank", "cartao latam". Em minúsculas. Se não souber, use "outros")
 }
 Exemplos:
-User: "gastei 150 no mercado"
-[{"amount": 150.00, "category": "comida", "description": "mercado", "installments": 1}]
+User: "gastei 150 no mercado no pix"
+[{"amount": 150.00, "category": "comida", "description": "mercado", "installments": 1, "payment_method": "pix"}]
 
-User: "comprei uma tv de 1200 em 10x"
-[{"amount": 1200.00, "category": "casa", "description": "tv", "installments": 10}]`;
+User: "comprei uma tv de 1200 em 10x no cartao nubank"
+[{"amount": 1200.00, "category": "casa", "description": "tv", "installments": 10, "payment_method": "cartao nubank"}]`;
 
 const model = genAI.getGenerativeModel({
   model: 'gemini-flash-latest',
