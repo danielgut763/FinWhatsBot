@@ -194,6 +194,26 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
     }
   };
 
+  const getDisplayDueDate = (dueDay: number, monthKey: string) => {
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonthKey = format(today, 'yyyy-MM');
+    
+    let [yearStr, monthStr] = monthKey.split('-');
+    let month = parseInt(monthStr, 10);
+    let year = parseInt(yearStr, 10);
+    
+    if (monthKey === todayMonthKey && dueDay < todayDate) {
+      month += 1;
+      if (month > 12) {
+        month = 1;
+        year += 1;
+      }
+    }
+    
+    return `${String(dueDay).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-emerald-500/30">
       {/* Header */}
@@ -397,7 +417,7 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                         </div>
                         {cardConfig ? (
                           <div className="text-xs text-zinc-500">
-                            Vencimento: {String(cardConfig.due_day).padStart(2, '0')}/{currentMonthKey.split('-')[1]}/{currentMonthKey.split('-')[0]}
+                            Vencimento: {getDisplayDueDate(cardConfig.due_day, currentMonthKey)}
                           </div>
                         ) : (
                           <button onClick={() => { setCardConfigName(item.name); setShowCardConfig(true); }} className="text-xs text-teal-500/70 hover:text-teal-400 text-left transition-colors">
