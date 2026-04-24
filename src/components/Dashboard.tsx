@@ -430,13 +430,18 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                             </div>
                             <div className="w-full md:w-1/3">
                               <label className="text-xs text-zinc-500 mb-1 block pl-1">Método de Pgto</label>
-                              <input 
-                                type="text" 
-                                placeholder="Método (Pix, Latam...)"
+                              <select 
                                 value={editExpenseData.payment_method}
                                 onChange={e => setEditExpenseData({...editExpenseData, payment_method: e.target.value})}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
-                              />
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-teal-500 appearance-none"
+                              >
+                                <option value="nao_informado">Não Informado</option>
+                                <option value="Vale Alimentacao">Vale Alimentação</option>
+                                <option value="Cartao Latam">Cartão Latam</option>
+                                <option value="Nubank Dani">Nubank Dani</option>
+                                <option value="Nubank Nathy">Nubank Nathy</option>
+                                <option value="Pix">Pix</option>
+                              </select>
                             </div>
                             <div className="w-full md:w-1/3">
                               <label className="text-xs text-zinc-500 mb-1 block pl-1">Descrição</label>
@@ -478,8 +483,13 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                           <div>
                             <p className="font-medium text-zinc-200 capitalize flex items-center gap-2">
                               {exp.category} 
-                              {exp.payment_method && exp.payment_method !== 'outros' && (
+                              {exp.payment_method && exp.payment_method !== 'outros' && exp.payment_method !== 'nao_informado' && (
                                 <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">{exp.payment_method}</span>
+                              )}
+                              {exp.payment_method === 'nao_informado' && (
+                                <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                                  ⚠️ Sem Pagamento
+                                </span>
                               )}
                               {exp.installment_info && <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">Parc: {exp.installment_info}</span>}
                             </p>

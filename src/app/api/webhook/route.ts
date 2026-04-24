@@ -98,7 +98,12 @@ export async function POST(req: NextRequest) {
           payment_method: payment_method
         });
         if (error) throw new Error("Erro no Supabase: " + JSON.stringify(error));
-        await sendMessage(chatId, `✅ Gasto registrado!\nR$ ${amount.toFixed(2)} em ${category} (${payment_method}).`);
+        
+        const methodWarning = payment_method === 'nao_informado' 
+          ? '\n⚠️ Método de pagamento não informado! Atualize pelo painel.' 
+          : ` (${payment_method})`;
+          
+        await sendMessage(chatId, `✅ Gasto registrado!\nR$ ${amount.toFixed(2)} em ${category}${methodWarning}`);
       }
     }
 

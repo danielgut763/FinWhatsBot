@@ -11,15 +11,18 @@ A estrutura do objeto JSON deve ser:
   "category": string (em minúsculas, ex: comida, transporte, lazer, casa, saude, educacao. Se não souber, use "outros"),
   "description": string (breve descrição se houver),
   "installments": número (quantidade de parcelas, default 1),
-  "payment_method": string (ex: "pix", "dinheiro", "cartao nubank", "cartao latam". Em minúsculas. Se não souber, use "outros"),
+  "payment_method": string (ESTRITAMENTE uma dessas exatas 5 opções: "Vale Alimentacao", "Cartao Latam", "Nubank Dani", "Nubank Nathy", "Pix". Se o usuário não disser qual foi, retorne "nao_informado"),
   "target_date": string (opcional, formato "YYYY-MM-DD". Preencha apenas se o usuário falar um mês específico ou data específica futura/passada. Ex: se ele disser "para maio", retorne o primeiro dia de maio do ano correspondente).
 }
 Exemplos:
 User: "gastei 150 no mercado no pix"
-[{"amount": 150.00, "category": "comida", "description": "mercado", "installments": 1, "payment_method": "pix"}]
+[{"amount": 150.00, "category": "comida", "description": "mercado", "installments": 1, "payment_method": "Pix"}]
 
-User: "comprei uma tv de 1200 em 10x no cartao nubank para maio"
-[{"amount": 1200.00, "category": "casa", "description": "tv", "installments": 10, "payment_method": "cartao nubank", "target_date": "2026-05-01"}]`;
+User: "comprei uma tv de 1200 em 10x no nubank da dani para maio"
+[{"amount": 1200.00, "category": "casa", "description": "tv", "installments": 10, "payment_method": "Nubank Dani", "target_date": "2026-05-01"}]
+
+User: "50 uber"
+[{"amount": 50.00, "category": "transporte", "description": "uber", "installments": 1, "payment_method": "nao_informado"}]`;
 
 const model = genAI.getGenerativeModel({
   model: 'gemini-2.5-flash-lite',
