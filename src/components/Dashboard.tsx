@@ -147,6 +147,9 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
       res = await updateCard(editingCardId, editingCardOldName, newCard.name, newCard.due_day);
     } else {
       res = await upsertCard(newCard.name, newCard.due_day);
+      if (res.data) {
+        newCard.id = res.data.id;
+      }
     }
 
     if (!res.success) {

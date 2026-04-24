@@ -46,12 +46,12 @@ export async function deleteExpense(id: string) {
 }
 
 export async function upsertCard(name: string, dueDay: number) {
-  const { error } = await supabase.from('cards').upsert({ name, due_day: dueDay }, { onConflict: 'name' });
+  const { data, error } = await supabase.from('cards').upsert({ name, due_day: dueDay }, { onConflict: 'name' }).select().single();
   if (error) {
     console.error("Supabase Error Upsert Card:", error);
   }
   revalidatePath('/');
-  return { success: !error, error };
+  return { success: !error, error, data };
 }
 
 export async function updateCard(id: string, oldName: string, newName: string, dueDay: number) {
