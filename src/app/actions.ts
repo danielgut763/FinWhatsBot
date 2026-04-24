@@ -53,3 +53,26 @@ export async function upsertCard(name: string, dueDay: number) {
   revalidatePath('/');
   return { success: !error, error };
 }
+
+export async function updateCard(id: string, oldName: string, newName: string, dueDay: number) {
+  const { error } = await supabase.from('cards').update({ name: newName, due_day: dueDay }).eq('id', id);
+  if (error) {
+    console.error("Supabase Error Update Card:", error);
+  } else if (oldName !== newName) {
+    // Atualiza o histórico de gastos se o nome mudou
+    const oldMethod = oldName.startsWith('cartao ') ? oldName : `cartao ${oldName}`;
+    const newMethod = newName.startsWith('cartao ') ? newName : `cartao ${newName}`;
+    await supabase.from('expenses').update({ payment_method: newMethod }).eq('payment_method', oldMethod);
+  }
+  revalidatePath('/');
+  return { success: !error, error };
+}
+
+export async function deleteCard(id: string) {
+  const { error } = await supabase.from('cards').delete().eq('id', id);
+  if (error) {
+    console.error("Supabase Error Delete Card:", error);
+  }
+  revalidatePath('/');
+  return { success: !error, error };
+}

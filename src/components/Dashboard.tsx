@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, LogOut, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Tag, Edit2, Check, X, Trash2, CreditCard, Settings2 } from 'lucide-react';
 import { Expense, Card } from '@/lib/supabase';
-import { logout, updateBalance, updateExpense, deleteExpense, upsertCard } from '@/app/actions';
+import { logout, updateBalance, updateExpense, deleteExpense, upsertCard, updateCard, deleteCard } from '@/app/actions';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { format, subMonths, addMonths, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -44,6 +44,8 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
 
   // Estados para configuração de cartões
   const [showCardConfig, setShowCardConfig] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editingCardOldName, setEditingCardOldName] = useState('');
   const [cardConfigName, setCardConfigName] = useState('');
   const [cardConfigDue, setCardConfigDue] = useState('');
   const [isSavingCard, setIsSavingCard] = useState(false);
@@ -138,19 +140,55 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
   const handleSaveCard = async () => {
     if (!cardConfigName || !cardConfigDue) return;
     setIsSavingCard(true);
-    const res = await upsertCard(cardConfigName.toLowerCase(), Number(cardConfigDue));
+    let res;
+    let newCard = { id: editingCardId || Date.now().toString(), name: cardConfigName.toLowerCase(), due_day: Number(cardConfigDue) };
+    
+    if (editingCardId) {
+      res = await updateCard(editingCardId, editingCardOldName, newCard.name, newCard.due_day);
+    } else {
+      res = await upsertCard(newCard.name, newCard.due_day);
+    }
+
     if (!res.success) {
       alert("Erro ao salvar cartão: " + JSON.stringify(res.error));
     } else {
-      const newCard = { id: Date.now().toString(), name: cardConfigName.toLowerCase(), due_day: Number(cardConfigDue) };
       setLocalCards(prev => {
-        const filtered = prev.filter(c => c.name !== newCard.name);
+        const filtered = prev.filter(c => c.id !== newCard.id && c.name !== newCard.name);
         return [...filtered, newCard];
       });
+      // Update local expenses if payment method changed
+      if (editingCardId && editingCardOldName !== newCard.name) {
+        setLocalExpenses(prev => prev.map(e => {
+          const oldMethod = editingCardOldName.startsWith('cartao ') ? editingCardOldName : `cartao ${editingCardOldName}`;
+          if (e.payment_method === oldMethod) {
+            return { ...e, payment_method: newCard.name.startsWith('cartao ') ? newCard.name : `cartao ${newCard.name}` };
+          }
+          return e;
+        }));
+      }
       setCardConfigName('');
       setCardConfigDue('');
+      setEditingCardId(null);
+      setEditingCardOldName('');
     }
     setIsSavingCard(false);
+  };
+
+  const handleEditCardClick = (card: Card) => {
+    setEditingCardId(card.id);
+    setEditingCardOldName(card.name);
+    setCardConfigName(card.name);
+    setCardConfigDue(card.due_day.toString());
+  };
+
+  const handleDeleteCardClick = async (cardId: string) => {
+    if (!confirm("Tem certeza que deseja excluir as configurações deste cartão? Os gastos continuarão salvos, mas ele não terá mais vencimento configurado.")) return;
+    const res = await deleteCard(cardId);
+    if (!res.success) {
+      alert("Erro ao excluir cartão: " + JSON.stringify(res.error));
+    } else {
+      setLocalCards(prev => prev.filter(c => c.id !== cardId));
+    }
   };
 
   return (
@@ -254,8 +292,13 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                   <input type="text" placeholder="Nome do cartão (ex: latam)" value={cardConfigName} onChange={e => setCardConfigName(e.target.value)} className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-teal-500" />
                   <input type="number" placeholder="Vencimento (ex: 15)" value={cardConfigDue} onChange={e => setCardConfigDue(e.target.value)} className="w-32 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-teal-500" />
                   <button onClick={handleSaveCard} disabled={isSavingCard} className="bg-teal-500 text-zinc-950 px-4 py-2 rounded-lg font-medium hover:bg-teal-400 transition-colors">
-                    Salvar
+                    {editingCardId ? 'Atualizar' : 'Salvar'}
                   </button>
+                  {editingCardId && (
+                    <button onClick={() => { setEditingCardId(null); setCardConfigName(''); setCardConfigDue(''); }} className="bg-zinc-800 text-zinc-400 px-3 py-2 rounded-lg font-medium hover:bg-zinc-700 transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="bg-zinc-950/50 rounded-xl p-4 border border-zinc-800/50">
@@ -263,9 +306,17 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                 <div className="space-y-2">
                   {localCards.length === 0 ? <p className="text-sm text-zinc-600">Nenhum cartão cadastrado.</p> : 
                     localCards.map(c => (
-                      <div key={c.name} className="flex justify-between items-center text-sm">
+                      <div key={c.id} className={`flex justify-between items-center text-sm p-1.5 rounded-md ${editingCardId === c.id ? 'bg-zinc-800/50 ring-1 ring-teal-500/50' : 'hover:bg-zinc-900/50'}`}>
                         <span className="capitalize text-zinc-300">{c.name}</span>
-                        <span className="text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full text-xs">Vence dia {c.due_day}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full text-xs">Vence dia {c.due_day}</span>
+                          <button onClick={() => handleEditCardClick(c)} className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-zinc-300 transition-colors" title="Editar">
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button onClick={() => handleDeleteCardClick(c.id)} className="p-1 hover:bg-red-500/20 rounded text-zinc-500 hover:text-red-400 transition-colors" title="Excluir">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     ))
                   }
