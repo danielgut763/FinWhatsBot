@@ -341,10 +341,14 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                           <span className="capitalize text-zinc-300 font-medium">{item.name.replace('cartao ', '')}</span>
                           <span className="font-semibold text-zinc-100">R$ {item.value.toFixed(2)}</span>
                         </div>
-                        {cardConfig && (
+                        {cardConfig ? (
                           <div className="text-xs text-zinc-500">
                             Vencimento: {String(cardConfig.due_day).padStart(2, '0')}/{currentMonthKey.split('-')[1]}/{currentMonthKey.split('-')[0]}
                           </div>
+                        ) : (
+                          <button onClick={() => { setCardConfigName(item.name); setShowCardConfig(true); }} className="text-xs text-teal-500/70 hover:text-teal-400 text-left transition-colors">
+                            + Adicionar vencimento
+                          </button>
                         )}
                       </div>
                     );
@@ -362,27 +366,38 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                     {editingExpenseId === exp.id ? (
                       <div className="flex flex-col md:flex-row gap-3 w-full items-start md:items-center">
                         <div className="flex-1 w-full space-y-2">
-                            <input 
-                              type="text" 
-                              placeholder="Categoria"
-                              value={editExpenseData.category}
-                              onChange={e => setEditExpenseData({...editExpenseData, category: e.target.value})}
-                              className="w-full md:w-1/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
-                            />
-                            <input 
-                              type="text" 
-                              placeholder="Método (Pix, Latam...)"
-                              value={editExpenseData.payment_method}
-                              onChange={e => setEditExpenseData({...editExpenseData, payment_method: e.target.value})}
-                              className="w-full md:w-1/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
-                            />
-                            <input 
-                              type="text" 
-                              placeholder="Descrição"
-                              value={editExpenseData.description}
-                              onChange={e => setEditExpenseData({...editExpenseData, description: e.target.value})}
-                              className="w-full md:w-1/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-500 focus:outline-none focus:border-teal-500"
-                            />
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <div className="w-full md:w-1/3">
+                              <label className="text-xs text-zinc-500 mb-1 block pl-1">Categoria</label>
+                              <input 
+                                type="text" 
+                                placeholder="Categoria"
+                                value={editExpenseData.category}
+                                onChange={e => setEditExpenseData({...editExpenseData, category: e.target.value})}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
+                              />
+                            </div>
+                            <div className="w-full md:w-1/3">
+                              <label className="text-xs text-zinc-500 mb-1 block pl-1">Método de Pgto</label>
+                              <input 
+                                type="text" 
+                                placeholder="Método (Pix, Latam...)"
+                                value={editExpenseData.payment_method}
+                                onChange={e => setEditExpenseData({...editExpenseData, payment_method: e.target.value})}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500"
+                              />
+                            </div>
+                            <div className="w-full md:w-1/3">
+                              <label className="text-xs text-zinc-500 mb-1 block pl-1">Descrição</label>
+                              <input 
+                                type="text" 
+                                placeholder="Descrição"
+                                value={editExpenseData.description}
+                                onChange={e => setEditExpenseData({...editExpenseData, description: e.target.value})}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-500 focus:outline-none focus:border-teal-500"
+                              />
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 w-full md:w-auto">
                           <span className="font-semibold text-zinc-400">R$</span>
