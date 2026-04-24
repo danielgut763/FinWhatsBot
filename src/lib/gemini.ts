@@ -22,7 +22,7 @@ User: "comprei uma tv de 1200 em 10x no cartao nubank para maio"
 [{"amount": 1200.00, "category": "casa", "description": "tv", "installments": 10, "payment_method": "cartao nubank", "target_date": "2026-05-01"}]`;
 
 const model = genAI.getGenerativeModel({
-  model: 'gemini-flash-latest',
+  model: 'gemini-2.5-flash-lite',
   systemInstruction,
   generationConfig: {
     responseMimeType: "application/json",
