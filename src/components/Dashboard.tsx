@@ -343,7 +343,7 @@ export function Dashboard({ currentMonthKey, expenses, balance, cards }: Dashboa
                         </div>
                         {cardConfig && (
                           <div className="text-xs text-zinc-500">
-                            Vencimento: Dia {cardConfig.due_day}
+                            Vencimento: {String(cardConfig.due_day).padStart(2, '0')}/{currentMonthKey.split('-')[1]}/{currentMonthKey.split('-')[0]}
                           </div>
                         )}
                       </div>

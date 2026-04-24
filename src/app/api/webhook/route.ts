@@ -59,9 +59,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const date = new Date();
-    
     for (const exp of expenses) {
+      const date = exp.target_date ? new Date(`${exp.target_date}T12:00:00Z`) : new Date();
       const amount = exp.amount;
       const category = exp.category;
       const desc = exp.description;

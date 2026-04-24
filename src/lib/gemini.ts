@@ -11,14 +11,15 @@ A estrutura do objeto JSON deve ser:
   "category": string (em minúsculas, ex: comida, transporte, lazer, casa, saude, educacao. Se não souber, use "outros"),
   "description": string (breve descrição se houver),
   "installments": número (quantidade de parcelas, default 1),
-  "payment_method": string (ex: "pix", "dinheiro", "cartao nubank", "cartao latam". Em minúsculas. Se não souber, use "outros")
+  "payment_method": string (ex: "pix", "dinheiro", "cartao nubank", "cartao latam". Em minúsculas. Se não souber, use "outros"),
+  "target_date": string (opcional, formato "YYYY-MM-DD". Preencha apenas se o usuário falar um mês específico ou data específica futura/passada. Ex: se ele disser "para maio", retorne o primeiro dia de maio do ano correspondente).
 }
 Exemplos:
 User: "gastei 150 no mercado no pix"
 [{"amount": 150.00, "category": "comida", "description": "mercado", "installments": 1, "payment_method": "pix"}]
 
-User: "comprei uma tv de 1200 em 10x no cartao nubank"
-[{"amount": 1200.00, "category": "casa", "description": "tv", "installments": 10, "payment_method": "cartao nubank"}]`;
+User: "comprei uma tv de 1200 em 10x no cartao nubank para maio"
+[{"amount": 1200.00, "category": "casa", "description": "tv", "installments": 10, "payment_method": "cartao nubank", "target_date": "2026-05-01"}]`;
 
 const model = genAI.getGenerativeModel({
   model: 'gemini-flash-latest',
@@ -30,7 +31,8 @@ const model = genAI.getGenerativeModel({
 
 export async function processExpenseText(text: string) {
   try {
-    const result = await model.generateContent(text);
+    const today = new Date().toISOString().split('T')[0];
+    const result = await model.generateContent(`Hoje é ${today}. O usuário disse: "${text}"`);
     return extractJSON(result.response.text());
   } catch (error) {
     console.error("Erro ao processar com Gemini:", error);
@@ -40,6 +42,7 @@ export async function processExpenseText(text: string) {
 
 export async function processExpenseAudio(base64Audio: string, mimeType: string) {
   try {
+    const today = new Date().toISOString().split('T')[0];
     const result = await model.generateContent([
       {
         inlineData: {
@@ -47,7 +50,7 @@ export async function processExpenseAudio(base64Audio: string, mimeType: string)
           mimeType: mimeType
         }
       },
-      "Ouça o áudio e extraia as informações de gasto conforme as instruções de sistema em JSON."
+      `Hoje é ${today}. Ouça o áudio e extraia as informações de gasto conforme as instruções de sistema em JSON.`
     ]);
     return extractJSON(result.response.text());
   } catch (error) {
